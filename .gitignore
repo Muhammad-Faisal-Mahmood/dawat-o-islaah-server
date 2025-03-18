@@ -1,0 +1,24 @@
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore database files (important for SQLite)
+db.sqlite3
+
+# Ignore environment files (if using virtualenv)
+env/
+venv/
+.env
+
+# Ignore migration cache (keep actual migrations but ignore caches)
+**/migrations/__pycache__/
+
+# Ignore VS Code settings (if using VS Code)
+.vscode/
+
+# Ignore logs and temporary files
+*.log
+*.swp
+*.swo
