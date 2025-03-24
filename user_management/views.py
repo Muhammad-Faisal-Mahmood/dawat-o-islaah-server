@@ -77,22 +77,20 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ChangePasswordAPIView(generics.GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ChangePasswordSerializer
 
+
+class ChangePasswordAPIView(generics.GenericAPIView):
+
+    permission_classes=[permissions.IsAuthenticated]
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        user = request.user
-        if not user.check_password(serializer.data.get('old_password')):
-            return Response({"error": "Wrong old password"}, status=400)
-        
-        user.set_password(serializer.data.get('new_password'))
-        user.save()
-        update_session_auth_hash(request, user)
-        return Response({'message': 'Password changed successfully'})
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            new_password = serializer.validated_data['new_password']
+            user.set_password(new_password)
+            user.save()
+            return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
