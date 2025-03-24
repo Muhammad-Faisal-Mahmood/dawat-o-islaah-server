@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework.response import Response
+from django.contrib.auth import authenticate
 
 
 User = get_user_model()
@@ -36,6 +37,31 @@ class LoginSerializer(serializers.Serializer):
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not authenticate(email=user.email, password=value):
+            raise serializers.ValidationError("Incorrect old password.")
+        return value
+    
+    def validate(self, attrs):
+       
+       old_password = attrs.get('old_password')
+       new_password = attrs.get('new_password')
+       special_characters = r'[!@#$%^&*()\-_=+{}\[\]|;:"<>,.?/]'
+       special_characters_count = len(re.findall(special_characters, new_password))
+       
+       if old_password == new_password:
+           raise serializers.ValidationError({
+                 'Error': "New password must be different from the old password."
+              })
+       elif len(new_password) < 8:
+         raise serializers.ValidationError({'Error':"Password must be at least 8 characters long."})
+       
+       elif special_characters_count < 1:
+         raise serializers.ValidationError({'Error':"Password must contain at least 1 special character."})
+       
+       return attrs
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
