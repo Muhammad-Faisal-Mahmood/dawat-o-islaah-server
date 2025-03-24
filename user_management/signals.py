@@ -1,14 +1,15 @@
 from .models import *
 import threading
-
-from dawat_o_islaah.settings import * 
-
+from dawat_o_islaah.settings import *
 from django.core.mail import EmailMessage, get_connection
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+from django.utils.html import strip_tags
 
-
-def send_welcome_email(subject, message, email_from, recipient_list):
+def send_welcome_email(subject, html_message, email_from, recipient_list):
+    """
+    Sends an HTML email using Django's EmailMessage.
+    """
     with get_connection(
             host=EMAIL_HOST,
             port=EMAIL_PORT,
@@ -16,49 +17,114 @@ def send_welcome_email(subject, message, email_from, recipient_list):
             password=EMAIL_HOST_PASSWORD,
             use_tls=EMAIL_USE_TLS
     ) as connection:
-        email = EmailMessage(subject, message, email_from, recipient_list, connection=connection)
+        # Create plain text version for email clients that don't support HTML
+        plain_message = strip_tags(html_message)
+        
+        # Create EmailMessage with HTML content
+        email = EmailMessage(
+            subject,
+            plain_message,  # Plain text version
+            email_from,
+            recipient_list,
+            connection=connection
+        )
+        email.content_subtype = "html"  # Set content type to HTML
+        email.body = html_message  # Add HTML content
         email.send()
 
 @receiver(post_save, sender=User)
-def send_mail_to_repoter(sender, instance, created, **kwargs):
+def send_mail_to_reporter(sender, instance, created, **kwargs):
     if created:
-        
-        subject = 'Welcome to Family'
+        subject = '🌟 Welcome to Dawat-e-Islah - Your Islamic Guidance Platform 🌟'
         email_from = EMAIL_HOST_USER
         recipient_list = [instance.email]
-        message = f'''
-                Assalamu Alaikum wa Rahmatullahi wa Barakatuh, {instance.first_name}!
-
-                Welcome to Dawat-e-Islah - Your Gateway to Islamic Solutions 🌙
-
-                We are honored to have you join our community of seekers of Islamic knowledge. Your journey towards finding authentic Islamic guidance begins today.
-
-                At Dawat-e-Islah, we are committed to:
-                - Providing reliable answers to your daily Islamic questions
-                - Offering solutions based on Quran and Sunnah
-                - Connecting you with authentic Islamic resources
-                - Helping resolve contemporary issues through classical Islamic wisdom
-
-                Our team of knowledgeable scholars and researchers is always ready to assist you with:
-                ✓ Matters of Aqeedah (Islamic creed)
-                ✓ Fiqh (Islamic jurisprudence) questions
-                ✓ Spiritual guidance and self-improvement
-                ✓ Contemporary Islamic issues
-
-                May Allah SWT bless your journey of seeking knowledge. Remember the words of our Prophet ﷺ:
-                "Seeking knowledge is an obligation upon every Muslim." (Ibn Majah)
-
-                If you have any questions or need assistance, please don't hesitate to reach out to us at [Your Contact Email]. We're here to help you grow in your Deen.
-
-                Jazakum Allah Khairan for choosing Dawat-e-Islah as your trusted Islamic resource.
-
-                Wasalam,
-                The Dawat-e-Islah Team
+        
+        # HTML email template
+        html_message = f'''
+        <html>
+        <head>
+            <style>
+            
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                }}
+                .header {{
+                    background-color: #2c5f2d;
+                    color: white;
+                    padding: 20px;
+                    text-align: center;
+                }}
+                .content {{
+                    padding: 20px;
+                }}
+                .footer {{
+                    background-color: #f4f4f4;
+                    padding: 10px;
+                    text-align: center;
+                    font-size: 0.9em;
+                }}
+                .highlight {{
+                    color: #2c5f2d;
+                    font-weight: bold;
+                }}
+                .btn {{
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 20px 0;
+                    background-color: #2c5f2d;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Assalamu Alaikum wa Rahmatullahi wa Barakatuh, {instance.first_name}!</h1>
+            </div>
+            
+            <div class="content">
+                <p>We are honored to welcome you to <span class="highlight">Dawat-e-Islah</span> - Your Gateway to Authentic Islamic Solutions 🌙</p>
+                
+                <p>Your journey towards seeking Islamic knowledge begins today. Here's what we offer:</p>
+                
+                <ul>
+                    <li>📖 Reliable answers to your Islamic questions</li>
+                    <li>🕌 Guidance based on Quran and Sunnah</li>
+                    <li>🤝 Connection with authentic Islamic resources</li>
+                    <li>💡 Solutions for contemporary issues</li>
+                </ul>
+                
+                <p>Our team of scholars is ready to assist you with:</p>
+                <ul>
+                    <li>✅ Matters of Aqeedah (Islamic creed)</li>
+                    <li>✅ Fiqh (Islamic jurisprudence)</li>
+                    <li>✅ Spiritual guidance</li>
+                    <li>✅ Contemporary Islamic issues</li>
+                </ul>
+                
+                <p>Remember the words of our Prophet ﷺ:</p>
+                <blockquote style="background: #f4f4f4; padding: 10px; border-left: 5px solid #2c5f2d;">
+                    "Seeking knowledge is an obligation upon every Muslim." (Ibn Majah)
+                </blockquote>
+                
+                <p>Need assistance? Reach out to us at <a href="mailto:support@dawateislah.com">support@dawateislah.com</a></p>
+                
+                <a style="color: white;" href="https://www.dawateislah.com" class="btn">Visit Our Website</a>
+            </div>
+            
+            <div class="footer">
+                <p>Jazakum Allah Khairan for choosing Dawat-e-Islah!</p>
+                <p>Wasalam,<br>The Dawat-e-Islah Team</p>
+            </div>
+        </body>
+        </html>
         '''
 
-        # Create a new thread to send the email in the background
         email_thread = threading.Thread(
             target=send_welcome_email,
-            args=(subject, message, email_from, recipient_list)
+            args=(subject, html_message, email_from, recipient_list)
         )
         email_thread.start()
