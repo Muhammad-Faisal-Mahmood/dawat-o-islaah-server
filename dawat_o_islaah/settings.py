@@ -9,9 +9,13 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 AUTH_USER_MODEL = 'user_management.User'
@@ -25,7 +29,7 @@ SECRET_KEY = 'django-insecure-h32=@f68u)ui-1r(f_5u*p5!a-al7airl#rtav0s3^b(k1$96o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 MEDIA_URL = '/media/'
@@ -111,7 +115,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'cvmaker750@gmail.com'
 EMAIL_HOST_PASSWORD = 'jzta akyp byjd bhdn'  
 DEFAULT_FROM_EMAIL = 'CV Maker <cvmaker750@gmail.com>'
-CURRENT_SITE= 'http://127.0.0.1:8000/'
+# CURRENT_SITE= 'http://127.0.0.1:8000/'
+CURRENT_SITE = os.getenv("BASE_URL")
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -159,3 +164,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
