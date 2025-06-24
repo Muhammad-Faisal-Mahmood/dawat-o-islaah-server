@@ -22,3 +22,6 @@ venv/
 *.log
 *.swp
 *.swo
+
+db.sqlite3
+

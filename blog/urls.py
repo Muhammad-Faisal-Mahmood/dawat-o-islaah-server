@@ -15,4 +15,4 @@ urlpatterns = [
     # Comment detail operations
     path('comments/<int:pk>/',
          CommentDetailAPIView.as_view(), name='comment-detail'),
-]
+]    

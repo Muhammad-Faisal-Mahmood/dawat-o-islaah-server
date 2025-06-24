@@ -10,9 +10,10 @@ urlpatterns = [
     path('api/books/', include('books.urls')),
     path('api/masails/', include('masails.urls')),
     path('api/questions/', include('qna.urls')),
+    path('api/hadith/', include('hadith.urls')),
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "Dawat O Islaah Admin"
 admin.site.site_title = "Dawat O Islaah Admin Portal"
-admin.site.index_title = "Welcome to Dawat O Islaah Portal"
+admin.site.index_title = "Welcome to Dawat O Islaah Portal"         
