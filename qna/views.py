@@ -8,7 +8,7 @@ class UserQuestionListCreateAPI(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Question.objects.filter(user=self.request.user).prefetch_related('answer')
+        return Question.objects.filter().prefetch_related('answer')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
