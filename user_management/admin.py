@@ -3,8 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User
 
 class CustomUserAdmin(UserAdmin):
-    # Fields to display in the list view
-    list_display = ('email', 'first_name', 'last_name', 'role', 'is_staff', 'is_active', 'date_joined')
+    # ✅ Added latitude and longitude to the list view columns
+    list_display = ('email', 'first_name', 'last_name', 'role', 'latitude', 'longitude', 'is_staff', 'is_active', 'date_joined')
     
     # Fields to filter by in the right sidebar
     list_filter = ('role', 'is_staff', 'is_active', 'date_joined')
@@ -17,13 +17,23 @@ class CustomUserAdmin(UserAdmin):
         (None, {
             'fields': ('email', 'password')
         }),
+
         ('Personal Info', {
             'fields': ('first_name', 'last_name')
         }),
+        
         ('Permissions', {
             'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
         }),
-       
+        
+        ('Preferences', {
+            'fields': ('receive_daily_email',)
+        }),
+
+        # ✅ NEW: Location Info section
+        ('Location Info', {
+            'fields': ('latitude', 'longitude')
+        }),
     )
     
     # Fields to display in the add user form
@@ -52,5 +62,8 @@ class CustomUserAdmin(UserAdmin):
     def make_basicuser(self, request, queryset):
         queryset.update(role='basicuser')
 
-# Register the User model with the custom admin class
+# ✅ Safe registration to avoid "AlreadyRegistered" errors
+if admin.site.is_registered(User):
+    admin.site.unregister(User)
+
 admin.site.register(User, CustomUserAdmin)

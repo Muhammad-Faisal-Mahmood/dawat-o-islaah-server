@@ -1,13 +1,8 @@
-from rest_framework import generics
-from .models import BlogPost
-from .serializers import BlogPostSerializer
-from rest_framework import generics, filters
-from .models import BlogPost,Comment
-from .serializers import BlogPostSerializer,CreateCommentSerializer,CommentSerializer
-from rest_framework import generics, permissions
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, filters, permissions, status
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.decorators import api_view
+from .models import BlogPost, Comment
+from .serializers import BlogPostSerializer, CreateCommentSerializer, CommentSerializer
 
 
 
@@ -35,7 +30,7 @@ class CommentCreateAPIView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        blog_post = generics.get_object_or_404(
+        blog_post = get_object_or_404(
             BlogPost, 
             id=self.kwargs['blog_id'],
             status='published'

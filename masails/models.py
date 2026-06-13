@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
+from ckeditor_uploader.fields import RichTextUploadingField
 
 class Category(models.Model):
     name = models.CharField(_('name'), max_length=100, unique=True)
@@ -30,7 +31,7 @@ class Masail(models.Model):
 
     title = models.CharField(_('title'), max_length=200)
     slug = models.SlugField(_('slug'), max_length=200, unique_for_date='created_at')
-    content = models.TextField(_('content'))
+    content = RichTextUploadingField(_('content'))
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='masails')
     status = models.CharField(_('status'), max_length=10, choices=STATUS_CHOICES, default='draft')
     image = models.ImageField(_('image'), upload_to='masails/images/', blank=True, null=True)

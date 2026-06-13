@@ -1,7 +1,21 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils.text import slugify
+from PIL import Image
+from ckeditor_uploader.fields import RichTextUploadingField
 
+BLOG_COVER_WIDTH = 1200
+BLOG_COVER_HEIGHT = 630
+
+def validate_blog_cover_image(image):
+    img = Image.open(image)
+    width, height = img.size
+    if width != BLOG_COVER_WIDTH or height != BLOG_COVER_HEIGHT:
+        raise ValidationError(
+            f'Image must be exactly {BLOG_COVER_WIDTH}×{BLOG_COVER_HEIGHT} pixels. '
+            f'Uploaded image is {width}×{height} pixels.'
+        )
 
 class BlogPost(models.Model):
     STATUS_CHOICES = (
@@ -11,11 +25,16 @@ class BlogPost(models.Model):
 
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique_for_date='created_at')
-    content = models.TextField()
+    content = RichTextUploadingField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
-    featured_image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    featured_image = models.ImageField(
+        upload_to='blog_images/',
+        blank=True,
+        null=True,
+        validators=[validate_blog_cover_image]
+    )
 
     class Meta:
         ordering = ('-created_at',)
@@ -31,11 +50,11 @@ class BlogPost(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('blog_detail', args=[self.slug])
-    
+
 
 class Comment(models.Model):
     blog_post = models.ForeignKey(
-        BlogPost, 
+        BlogPost,
         on_delete=models.CASCADE,
         related_name='comments'
     )

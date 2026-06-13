@@ -1,27 +1,62 @@
-# Ignore compiled Python files
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py.save
 
-# Ignore database files (important for SQLite)
-# db.sqlite3
-
-# Ignore environment files (if using virtualenv)
+# Virtualenv
 env/
 venv/
 .env
 
-# Ignore migration cache (keep actual migrations but ignore caches)
-**/migrations/__pycache__/
+# Database
+db.sqlite3
 
-# Ignore VS Code settings (if using VS Code)
-.vscode/
+# Static & Media
+static/
+staticfiles/
+media/
 
-# Ignore logs and temporary files
+# Uploads
+uploads/
+
+# Archives
+*.zip
+*.tar.gz
+
+# Logs
 *.log
 *.swp
 *.swo
 
-db.sqlite3
+# Celery
+celerybeat-schedule*
 
+# IDE
+.vscode/
+.idea/
+
+# Temp / utility scripts
+analyze*.py
+check_*.py
+stash*.txt
+vite_*.txt
+test.html
+deploy.sh
+fix_db.py
+migrate_*.py
+sync_*.py
+rebuild_*.py
+translate_*.py
+
+# Node
+node_modules/
+package-lock.json
+
+# Other
+vercel.json
+cron_log.txt
+backend/
+quran/
+dawat/

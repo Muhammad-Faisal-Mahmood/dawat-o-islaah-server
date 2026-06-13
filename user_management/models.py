@@ -7,6 +7,10 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError(_('The Email must be set'))
         email = self.normalize_email(email)
+
+        # ✅ ensure default value if not provided
+        extra_fields.setdefault('receive_daily_email', True)
+
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save()
@@ -17,6 +21,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('role', 'admin')
+        extra_fields.setdefault('receive_daily_email', True)  # ✅ NEW
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError(_('Superuser must have is_staff=True.'))
@@ -39,6 +44,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(_('staff status'), default=False)
     date_joined = models.DateTimeField(_('date joined'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    timezone = models.CharField(max_length=50, default='UTC')
+    last_email_sent_date = models.DateField(null=True, blank=True)
+
+    # ✅ NEW FIELD
+    receive_daily_email = models.BooleanField(default=True)
 
     objects = CustomUserManager()
 
@@ -49,7 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
-    def _str_(self):
+    def __str__(self):
         return self.email
 
     def get_full_name(self):

@@ -1,21 +1,21 @@
-from .models import *
 import threading
-from dawat_o_islaah.settings import *
+from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.utils.html import strip_tags
+from .models import User
 
 def send_welcome_email(subject, html_message, email_from, recipient_list):
     """
     Sends an HTML email using Django's EmailMessage.
     """
     with get_connection(
-            host=EMAIL_HOST,
-            port=EMAIL_PORT,
-            username=EMAIL_HOST_USER,
-            password=EMAIL_HOST_PASSWORD,
-            use_tls=EMAIL_USE_TLS
+            host=settings.EMAIL_HOST,
+            port=settings.EMAIL_PORT,
+            username=settings.EMAIL_HOST_USER,
+            password=settings.EMAIL_HOST_PASSWORD,
+            use_tls=settings.EMAIL_USE_TLS
     ) as connection:
         # Create plain text version for email clients that don't support HTML
         plain_message = strip_tags(html_message)
@@ -35,8 +35,8 @@ def send_welcome_email(subject, html_message, email_from, recipient_list):
 @receiver(post_save, sender=User)
 def send_mail_to_reporter(sender, instance, created, **kwargs):
     if created:
-        subject = '🌟 Welcome to Dawat-e-Islah - Your Islamic Guidance Platform 🌟'
-        email_from = EMAIL_HOST_USER
+        subject = 'Welcome to Dawat-e-Islah - Your Islamic Guidance Platform'
+        email_from = settings.EMAIL_HOST_USER
         recipient_list = [instance.email]
         
         # HTML email template

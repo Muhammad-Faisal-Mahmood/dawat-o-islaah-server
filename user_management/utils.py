@@ -1,5 +1,5 @@
 import threading
-from dawat_o_islaah.settings import EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS
+from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 
@@ -8,11 +8,11 @@ def send_mail(subject, html_message, email_from, recipient_list):
     Sends an HTML email using Django's EmailMessage.
     """
     with get_connection(
-            host=EMAIL_HOST,
-            port=EMAIL_PORT,
-            username=EMAIL_HOST_USER,
-            password=EMAIL_HOST_PASSWORD,
-            use_tls=EMAIL_USE_TLS
+            host=settings.EMAIL_HOST,
+            port=settings.EMAIL_PORT,
+            username=settings.EMAIL_HOST_USER,
+            password=settings.EMAIL_HOST_PASSWORD,
+            use_tls=settings.EMAIL_USE_TLS
     ) as connection:
         plain_message = strip_tags(html_message)
         email = EmailMessage(
@@ -28,7 +28,7 @@ def send_mail(subject, html_message, email_from, recipient_list):
 
 def send_forget_password_email(first_name, email, absurl):
     subject = '🔒 Reset Your Password - Dawat-e-Islah'
-    email_from = EMAIL_HOST_USER
+    email_from = settings.EMAIL_HOST_USER
     recipient_list = [email]
 
     html_message = f'''

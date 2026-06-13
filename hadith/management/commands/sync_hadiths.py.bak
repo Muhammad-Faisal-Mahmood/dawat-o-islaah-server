@@ -1,0 +1,131 @@
+import requests
+import time
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from hadith.models import Hadith, SyncStatus, Book
+
+API_KEY = "$2y$10$d4nL2E660zHHBrwTB7Bviu3WvW5sToLRBWFbJ1yhn7rJzSuNpA0S"
+BASE_URL = "https://hadithapi.com/api/hadiths"
+
+
+class Command(BaseCommand):
+    help = "Enterprise-level Hadith Sync System"
+
+    def handle(self, *args, **kwargs):
+
+        sync_status, _ = SyncStatus.objects.get_or_create(
+            name="hadith_sync",
+            defaults={"last_page": 1}
+        )
+
+        page = sync_status.last_page
+        total_created = 0
+
+        while True:
+
+            self.stdout.write(f"Syncing page {page}...")
+
+            params = {
+                "apiKey": API_KEY,
+                "page": page
+            }
+
+            try:
+                for attempt in range(3):
+                    try:
+                        response = requests.get(BASE_URL, params=params, timeout=30)
+                        break
+                    except requests.exceptions.RequestException as e:
+                        self.stdout.write(self.style.WARNING(f"Retry {attempt+1}/3 failed..."))
+                        time.sleep(2)
+                else:
+                    self.stdout.write(self.style.ERROR(f"Skipping page {page} due to network failure"))
+                    page += 1
+                    continue
+
+                if response.status_code != 200:
+                    self.stdout.write(
+                        self.style.WARNING(f"API Error: {response.status_code}")
+                    )
+                    break
+
+                data = response.json()
+
+            except Exception as e:
+                self.stdout.write(
+                    self.style.ERROR(f"Request failed: {str(e)}")
+                )
+                break
+
+            hadith_list = data.get("hadiths", {}).get("data", [])
+
+            if not hadith_list:
+                break
+
+            objects_to_create = []
+
+            for item in hadith_list:
+
+                book_slug = item.get("bookSlug")
+
+                # 🔥 GET OR CREATE BOOK
+                book_obj, _ = Book.objects.get_or_create(
+                    name=book_slug,
+                    defaults={"order": 0}
+                )
+
+                raw_number = item.get("hadithNumber")
+
+                # 🔥 Clean hadith number
+                try:
+                    if isinstance(raw_number, str) and "," in raw_number:
+                        raw_number = raw_number.split(",")[0].strip()
+
+                    hadith_number = int(raw_number)
+
+                except (TypeError, ValueError):
+                    continue
+
+                # ✅ NEW: HANDLE CHAPTER DATA PROPERLY
+                chapter_data = item.get("chapter", {})
+
+                if isinstance(chapter_data, dict):
+                    chapter_english = chapter_data.get("chapterEnglish", "")
+                    chapter_arabic = chapter_data.get("chapterArabic", "")
+                else:
+                    chapter_english = chapter_data or ""
+                    chapter_arabic = ""
+
+                objects_to_create.append(
+                    Hadith(
+                        book=book_obj,
+                        chapter_english=chapter_english,
+                        chapter_arabic=chapter_arabic,
+                        hadith_number=hadith_number,
+                        arabic_text=item.get("hadithArabic"),
+                        english_text=item.get("hadithEnglish"),
+            urdu_text=item.get("hadithUrdu"),
+            reference=item.get("reference") or "",
+                    )
+                )
+
+            # 🔥 BULK INSERT (FAST + SAFE)
+            with transaction.atomic():
+                Hadith.objects.bulk_create(
+                    objects_to_create,
+                    ignore_conflicts=True
+                )
+
+            total_created += len(objects_to_create)
+
+            # Save progress
+            sync_status.last_page = page
+            sync_status.save()
+
+            page += 1
+
+            time.sleep(1)  # prevent rate limiting
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Sync completed. Total processed: {total_created}"
+        ))

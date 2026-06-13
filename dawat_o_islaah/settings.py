@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -29,12 +30,9 @@ SECRET_KEY = 'django-insecure-h32=@f68u)ui-1r(f_5u*p5!a-al7airl#rtav0s3^b(k1$96o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', ".vercel.app"]
 
 CORS_ORIGIN_ALLOW_ALL = True
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
@@ -51,13 +49,50 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'user_management',
+    'forum',
     'blog',
     'books',
     'masails',
     'qna',
     'corsheaders',
     'hadith',
+    'quran.apps.QuranConfig',
+    'ckeditor',
+    'ckeditor_uploader',
+    'utils',
 ]
+
+CKEDITOR_CONTENT_CSS = (
+    "/quran/fonts.css",
+)
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'width': '100%',
+        'height': 400,
+        'format_tags': 'p;h1;h2;h3;h4;h5;h6',
+        'toolbar': 'full',
+        'extraPlugins': ','.join([
+            'codesnippet',
+            'uploadimage',
+        ]),
+        'toolbar_Full': [
+            ['Source','-','Save','NewPage','Preview'],
+            ['Cut','Copy','Paste','PasteText','PasteFromWord'],
+            ['Undo','Redo'],
+            ['Find','Replace','SelectAll'],
+            ['Bold','Italic','Underline','Strike'],
+            ['NumberedList','BulletedList'],
+            ['Outdent','Indent','Blockquote'],
+            ['JustifyLeft','JustifyCenter','JustifyRight'],
+            ['Link','Unlink'],
+            ['Image','Table','HorizontalRule'],
+            ['Format','Font','FontSize'],
+            ['TextColor','BGColor'],
+            ['Maximize','ShowBlocks']
+        ]
+    }
+}
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
 SILENCED_SYSTEM_CHECKS = ["security.W019"]
@@ -66,11 +101,13 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'books.middleware.FileUploadSizeErrorMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'dawat_o_islaah.urls'
@@ -116,11 +153,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Gmail's SMTP server
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'cvmaker750@gmail.com'
-EMAIL_HOST_PASSWORD = 'jzta akyp byjd bhdn'  
-DEFAULT_FROM_EMAIL = 'CV Maker <cvmaker750@gmail.com>'
+EMAIL_HOST_USER = 'dawatofficialmail@gmail.com'
+EMAIL_HOST_PASSWORD = 'xunn nuwf vgoe wobz'  
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # CURRENT_SITE= 'http://127.0.0.1:8000/'
-CURRENT_SITE = os.getenv("BASE_URL")
+CURRENT_SITE = os.getenv("BASE_URL", "http://127.0.0.1:8000/")
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -143,6 +180,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+	'rest_framework.authentication.SessionAuthentication',
     ),
     'PAGE_SIZE': 10,
 }
@@ -162,11 +200,41 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+CKEDITOR_UPLOAD_PATH = "uploads/"
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2147483648  # 2GB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'  # Or your local timezone
+CELERY_TASK_ALWAYS_EAGER = True  # Run tasks synchronously in dev (no Redis needed)
+
+# This schedules your 'manager' task to run every hour
+CELERY_BEAT_SCHEDULE = {
+    'dispatch-fajr-emails-hourly': {
+        'task': 'dispatch_fajr_emails',
+        'schedule': 3600.0,  # Every hour in seconds
+    },
+}
+CSRF_TRUSTED_ORIGINS = [
+    "https://dawatoislaah.com",
+    "https://www.dawatoislaah.com",
+]
+
+# Ensure your domain is also in ALLOWED_HOSTS
+ALLOWED_HOSTS = ["dawatoislaah.com", "www.dawatoislaah.com", "127.0.0.1", "localhost", "172.31.20.105", ".vercel.app"]
