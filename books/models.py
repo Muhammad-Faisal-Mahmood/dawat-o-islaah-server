@@ -27,6 +27,16 @@ class Book(models.Model):
 
     extracted_text = models.TextField(blank=True, null=True)
     html_content = models.TextField(blank=True, null=True)
+    processing_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('processing', 'Processing'),
+            ('completed', 'Completed'),
+            ('failed', 'Failed'),
+        ],
+        default='pending'
+    )
 
     total_pages = models.PositiveIntegerField(_('total pages'), default=0)
     is_split = models.BooleanField(_('pages split'), default=False)
@@ -144,6 +154,36 @@ class Book(models.Model):
             except Exception as e:
                 print(f"Failed to render page {page_num} image for {self.title}: {e}")
 
+            # Save text for instant frontend search
+            try:
+                page_text = page.get_text().strip()
+                if page_text:
+                    txt_path = os.path.join(pages_dir, f'page-{page_num}.txt')
+                    with open(txt_path, 'w', encoding='utf-8') as f:
+                        f.write(page_text)
+                    blocks = page.get_text('dict')['blocks']
+                    items = []
+                    for blk in blocks:
+                        if blk['type'] != 0:
+                            continue
+                        for line in blk['lines']:
+                            for span in line['spans']:
+                                bbox = span['bbox']
+                                items.append({
+                                    'str': span['text'],
+                                    'x': bbox[0],
+                                    'y': page.rect.height - bbox[3],
+                                    'width': bbox[2] - bbox[0],
+                                    'height': bbox[3] - bbox[1],
+                                })
+                    if items:
+                        import json
+                        json_path = os.path.join(pages_dir, f'page-{page_num}.json')
+                        with open(json_path, 'w', encoding='utf-8') as f:
+                            json.dump({'items': items, 'pageWidth': page.rect.width, 'pageHeight': page.rect.height}, f)
+            except Exception as e:
+                print(f"Failed to extract text for page {page_num}: {e}")
+
             src.close()
 
         workers = min(os.cpu_count() or 2, 8)
@@ -188,6 +228,114 @@ class Book(models.Model):
                 print(f"Failed to render page {i} image for {self.title}: {e}")
 
     # =========================================================
+    # =========================================================
+    # Render the first pages as JPG + text + JSON (instant preview)
+    # =========================================================
+    def render_first_page(self):
+        import fitz
+        input_path = self.pdf_file.path
+        if not input_path or not input_path.lower().endswith('.pdf'):
+            return 0
+        if not os.path.exists(input_path):
+            return 0
+        try:
+            doc = fitz.open(input_path)
+            total = doc.page_count
+            if total == 0:
+                doc.close()
+                return 0
+
+            pages_dir = os.path.normpath(self.pages_dir)
+            os.makedirs(pages_dir, exist_ok=True)
+
+            for i in range(min(5, total)):
+                page = doc[i]
+                page_num = i + 1
+                img_path = os.path.join(pages_dir, f'page-{page_num}.jpg')
+                if not os.path.exists(img_path):
+                    pix = page.get_pixmap(dpi=72)
+                    pix.save(img_path)
+                page_text = page.get_text().strip()
+                if page_text:
+                    text_path = os.path.join(pages_dir, f'page-{page_num}.txt')
+                    if not os.path.exists(text_path):
+                        with open(text_path, 'w', encoding='utf-8') as f:
+                            f.write(page_text)
+                    blocks = page.get_text('dict')['blocks']
+                    items = []
+                    for blk in blocks:
+                        if blk['type'] != 0:
+                            continue
+                        for line in blk['lines']:
+                            for span in line['spans']:
+                                bbox = span['bbox']
+                                items.append({
+                                    'str': span['text'],
+                                    'x': bbox[0],
+                                    'y': page.rect.height - bbox[3],
+                                    'width': bbox[2] - bbox[0],
+                                    'height': bbox[3] - bbox[1],
+                                })
+                    if items:
+                        import json
+                        json_path = os.path.join(pages_dir, f'page-{page_num}.json')
+                        if not os.path.exists(json_path):
+                            with open(json_path, 'w', encoding='utf-8') as f:
+                                json.dump({'items': items, 'pageWidth': page.rect.width, 'pageHeight': page.rect.height}, f)
+            doc.close()
+            return total
+        except Exception as e:
+            print(f"render_first_page failed for {self.title}: {e}")
+            return 0
+
+    # =========================================================
+    # Fast low-res previews for ALL pages (before _split_pdf)
+    # Renders directly from original PDF at 72 DPI
+    # =========================================================
+    def render_lowres_page_images(self):
+        import fitz
+        input_path = self.pdf_file.path
+        if not input_path or not input_path.lower().endswith('.pdf') or not os.path.exists(input_path):
+            return
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        pages_dir = os.path.normpath(self.pages_dir)
+        os.makedirs(pages_dir, exist_ok=True)
+        for i in range(total):
+            page_num = i + 1
+            img_path = os.path.join(pages_dir, f'page-{page_num}.jpg')
+            if os.path.exists(img_path):
+                continue
+            page = doc[i]
+            pix = page.get_pixmap(dpi=72)
+            pix.save(img_path)
+            text = page.get_text().strip()
+            if text:
+                txt_path = os.path.join(pages_dir, f'page-{page_num}.txt')
+                with open(txt_path, 'w', encoding='utf-8') as f:
+                    f.write(text)
+                blocks = page.get_text('dict')['blocks']
+                items = []
+                for blk in blocks:
+                    if blk['type'] != 0:
+                        continue
+                    for line in blk['lines']:
+                        for span in line['spans']:
+                            bbox = span['bbox']
+                            items.append({
+                                'str': span['text'],
+                                'x': bbox[0],
+                                'y': page.rect.height - bbox[3],
+                                'width': bbox[2] - bbox[0],
+                                'height': bbox[3] - bbox[1],
+                            })
+                if items:
+                    import json
+                    json_path = os.path.join(pages_dir, f'page-{page_num}.json')
+                    with open(json_path, 'w', encoding='utf-8') as f:
+                        json.dump({'items': items, 'pageWidth': page.rect.width, 'pageHeight': page.rect.height}, f)
+        doc.close()
+
     def delete(self, *args, **kwargs):
         pages_dir = os.path.normpath(self.pages_dir)
         if os.path.exists(pages_dir):

@@ -18,10 +18,8 @@ class BookSerializer(serializers.ModelSerializer):
         ]
 
     def get_pages_url_prefix(self, obj):
-        if obj.is_split:
-            request = self.context.get('request')
-            prefix = f'/media/books/pages/{obj.pk}/'
-            if request:
-                return request.build_absolute_uri(prefix)
-            return prefix
-        return None
+        request = self.context.get('request')
+        prefix = f'/media/books/pages/{obj.pk}/'
+        if request:
+            return request.build_absolute_uri(prefix)
+        return prefix
