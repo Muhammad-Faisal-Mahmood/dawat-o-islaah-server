@@ -16,7 +16,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'password', 'receive_daily_email', 'latitude', 'longitude')
+        fields = ('email', 'first_name', 'last_name', 'password', 'receive_daily_email', 'latitude', 'longitude', 'timezone')
         extra_kwargs = {'password': {'write_only': True}}
     
     def create(self, validated_data):
@@ -27,7 +27,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', ''),
             receive_daily_email=validated_data.get('receive_daily_email', True),
             latitude=validated_data.get('latitude'), # Added for location
-            longitude=validated_data.get('longitude') # Added for location
+            longitude=validated_data.get('longitude'), # Added for location
+            timezone=validated_data.get('timezone', 'UTC') # Timezone from browser
         )
         return user
 
@@ -35,7 +36,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('latitude', 'longitude')
+        fields = ('latitude', 'longitude', 'timezone')
         extra_kwargs = {
             'latitude': {'required': True},
             'longitude': {'required': True}

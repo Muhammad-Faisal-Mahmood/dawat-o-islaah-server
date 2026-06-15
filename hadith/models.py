@@ -103,3 +103,21 @@ class Hadith(models.Model):
 
     def __str__(self):
         return f"{self.book.name} | Ch.{self.chapter_number} | {self.hadith_number}"
+
+
+class HadithDocumentUpload(models.Model):
+    file = models.FileField(
+        upload_to='hadith_uploads/',
+        verbose_name="Word Document (.docx)"
+    )
+    result_log = models.TextField(blank=True, editable=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Upload Word Document"
+        verbose_name_plural = "Upload Word Document"
+
+    def __str__(self):
+        if self.uploaded_at:
+            return f"Upload {self.uploaded_at.strftime('%Y-%m-%d %H:%M')}"
+        return "Upload (pending)"

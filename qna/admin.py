@@ -24,7 +24,17 @@ class QuestionAdmin(admin.ModelAdmin):
     list_filter = ('status', 'is_most_read', 'created_at')
     search_fields = ('title', 'content', 'user__email')
     inlines = [AnswerInline]
-    readonly_fields = ('user', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ('user', 'created_at', 'updated_at')
+        return ('created_at', 'updated_at')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.user = request.user
+        super().save_model(request, obj, form, change)
 
     def get_approval_status(self, obj):
         from django.core.exceptions import ObjectDoesNotExist

@@ -176,6 +176,7 @@ def get_hadith(request):
     book_slug = request.GET.get("book")
     chapter_no = request.GET.get("chapter")
     page = request.GET.get("page", 1)
+    hadith_no = request.GET.get("hadith")
 
     book_obj = _resolve_book(book_slug)
 
@@ -200,7 +201,11 @@ def get_hadith(request):
     if chapter_no is not None and str(chapter_no).isdigit():
         queryset = queryset.filter(chapter_number=int(chapter_no))
 
-    paginator = Paginator(queryset, 20)
+    if hadith_no is not None and str(hadith_no).isdigit():
+        queryset = queryset.filter(hadith_number=int(hadith_no))
+        paginator = Paginator(queryset, 1)
+    else:
+        paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(page)
 
     hadith_data = []

@@ -126,7 +126,8 @@ class UpdateLocationAPIView(APIView):
         serializer = UserLocationSerializer(instance=user, data=request.data, partial=True)
 
         if serializer.is_valid():
-            serializer.save()
+            if request.data.get('timezone'):
+                user.timezone = request.data.get('timezone')
             return Response({
                 "message": "Location updated successfully",
                 "latitude": user.latitude,
